@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
-  "name": "io.github.fasuizu-br/brainiall-tts-mcp",
-  "description": "Hosted pay-per-use text-to-speech: 54 neural voices, 9 languages incl. Brazilian Portuguese. $0.008/1K chars, $10 free credits.",
+  "name": "com.brainiall/tts",
+  "description": "Hosted pay-per-use TTS: 54 neural voices, 9 languages incl. Brazilian Portuguese. $10 free credits.",
   "version": "1.0.0",
   "websiteUrl": "https://brainiall.com",
   "repository": {
