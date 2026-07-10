@@ -1,0 +1,17 @@
+# Smithery configuration — https://smithery.ai/docs/build/project-config
+runtime: "container"
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
+startCommand:
+  type: "http"
+  configSchema:
+    type: "object"
+    required: ["brainiallApiKey"]
+    properties:
+      brainiallApiKey:
+        type: "string"
+        title: "Brainiall API Key"
+        description: "Your Brainiall API key (sign up at https://app.brainiall.com — $10 free credits)"
+  exampleConfig:
+    brainiallApiKey: "brk_example_key"
