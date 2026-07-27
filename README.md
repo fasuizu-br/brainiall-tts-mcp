@@ -15,7 +15,7 @@ Every other TTS MCP server either runs models locally (heavy, slow to set up) or
 
 ## Quick start
 
-Get an API key at [app.brainiall.com](https://app.brainiall.com) ($10 welcome credits, no card required).
+Get an API key at [app.brainiall.com](https://app.brainiall.com?utm_source=github&utm_medium=oss&utm_campaign=tts_mcp) ($10 welcome credits, no card required).
 
 ### Remote server (recommended — nothing to install)
 
@@ -96,6 +96,8 @@ Ask your agent:
 > "Read this paragraph out loud in Brazilian Portuguese with a female voice"
 
 The agent calls `synthesize_speech(text=..., language="pt", voice="pf_dora")` and receives playable WAV audio.
+
+For copy-ready prompts and smoke tests for narration, accessibility, language practice, and agent alerts, see [Agent workflow recipes](examples/agent-workflows.md).
 
 ## Authentication & billing
 
