@@ -135,6 +135,8 @@ For copy-ready prompts and smoke tests for narration, accessibility, language pr
 
 For REST client testing and automation, import the [Postman collection](postman/Brainiall-TTS-API.postman_collection.json). It contains health, voice-list and two-character synthesis smoke tests and keeps the API key in a collection variable rather than the request URL.
 
+For no-code automation, import the [n8n text-to-WAV workflow](examples/n8n-brainiall-tts-to-wav.json). It uses n8n's Header Auth credential instead of embedding a key in the workflow, sends editable text, voice and speed fields to the hosted API, and returns the WAV in the binary property `speech`. The template is statically validated; select your credential and run it in your own n8n instance to validate the live integration.
+
 For code generation, API clients, and directory discovery, use the machine-readable [OpenAPI 3.1 specification](openapi/brainiall-tts.openapi.yaml). The specification documents the authenticated voice catalog and WAV synthesis endpoints without embedding an API key.
 
 ## Authentication & billing

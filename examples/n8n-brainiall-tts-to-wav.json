@@ -1,0 +1,152 @@
+{
+  "name": "Brainiall TTS: text to WAV",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        100
+      ],
+      "id": "99774ff0-55df-4b68-adfd-98f657b8378c",
+      "name": "When clicking Execute workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "72b7938e-6bdb-4b86-a09e-203ed5e91f23",
+              "name": "text",
+              "value": "Olá! Este áudio foi criado pela Brainiall dentro do n8n.",
+              "type": "string"
+            },
+            {
+              "id": "f75c7426-3fa7-4e9e-bbe2-89f7d6dca0d1",
+              "name": "voice",
+              "value": "pf_dora",
+              "type": "string"
+            },
+            {
+              "id": "31240fe5-7415-4c33-bfb7-c21c08233f47",
+              "name": "speed",
+              "value": 1,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -280,
+        100
+      ],
+      "id": "566a2e62-f078-4ce5-a81a-e9c02d095bc1",
+      "name": "Set text and voice"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.brainiall.com/v1/tts/synthesize",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "audio/wav"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "voice",
+              "value": "={{ $json.voice }}"
+            },
+            {
+              "name": "speed",
+              "value": "={{ $json.speed }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "speech"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -20,
+        100
+      ],
+      "id": "3fbd23c4-33b1-47b4-8437-d6b019871b07",
+      "name": "Generate WAV with Brainiall"
+    },
+    {
+      "parameters": {
+        "content": "## Configure the API key before the first run\n\nOpen **Generate WAV with Brainiall** and select a **Header Auth** credential. Set the header name to `Authorization` and the value to `Bearer YOUR_BRAINIALL_API_KEY`. Never paste the key into node parameters.\n\nCreate a key with welcome credits: https://app.brainiall.com?utm_source=github&utm_medium=n8n_workflow&utm_campaign=c7_tts_automation\n\nA successful run returns WAV audio in the binary property `speech`. Synthesis is metered at USD 0.008 per 1,000 characters.",
+        "height": 360,
+        "width": 430,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        -360
+      ],
+      "id": "9c85dc7c-6b69-4911-832a-7b64fc48d5d3",
+      "name": "Setup instructions"
+    }
+  ],
+  "connections": {
+    "When clicking Execute workflow": {
+      "main": [
+        [
+          {
+            "node": "Set text and voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set text and voice": {
+      "main": [
+        [
+          {
+            "node": "Generate WAV with Brainiall",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
