@@ -51,6 +51,17 @@ After the server starts, try:
 
 The install URL format and secret-input configuration follow the [official VS Code MCP guide](https://code.visualstudio.com/api/extension-guides/ai/mcp) and [configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
+### Continue (VS Code / JetBrains)
+
+Copy the ready-to-use [Continue MCP block](examples/continue/brainiall-tts.yaml)
+to `.continue/mcpServers/brainiall-tts.yaml`, then put
+`BRAINIALL_API_KEY=your-key` in `.continue/.env`. Keep that `.env` file out
+of version control.
+
+The block uses Continue's supported `streamable-http` transport and resolves
+the key through `${{ secrets.BRAINIALL_API_KEY }}`; no credential is committed.
+See the [Continue setup and smoke test](examples/continue/README.md).
+
 ### Remote server (recommended — nothing to install)
 
 **Claude Code**
