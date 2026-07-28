@@ -1,0 +1,75 @@
+{
+  "info": {
+    "_postman_id": "f649f5ea-bd16-4f9f-98af-5fb9ec20d95c",
+    "name": "Brainiall TTS API",
+    "description": "Zero-install smoke tests for the hosted Brainiall TTS API. Create an API key with welcome credits at https://app.brainiall.com?utm_source=github&utm_medium=postman&utm_campaign=tts_api_collection and set brainiall_api_key before running authenticated requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "brainiall_api_key",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "base_url",
+      "value": "https://api.brainiall.com",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Check public TTS MCP health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/mcp/tts/health",
+        "description": "Public health check. Expected response: {\"status\":\"ok\"}."
+      }
+    },
+    {
+      "name": "List available voices",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{brainiall_api_key}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/v1/tts/voices",
+        "description": "Returns the voice catalog. Keep the API key in the secret collection variable."
+      }
+    },
+    {
+      "name": "Synthesize two-character smoke test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{brainiall_api_key}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Oi\",\n  \"voice\": \"pf_dora\",\n  \"speed\": 1.0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/v1/tts/synthesize",
+        "description": "Minimal billable QA request. A successful response starts with RIFF and has content-type audio/wav."
+      }
+    }
+  ]
+}

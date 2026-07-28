@@ -17,6 +17,40 @@ Every other TTS MCP server either runs models locally (heavy, slow to set up) or
 
 Get an API key at [app.brainiall.com](https://app.brainiall.com?utm_source=github&utm_medium=oss&utm_campaign=tts_mcp) ($10 welcome credits, no card required).
 
+### VS Code / GitHub Copilot
+
+[![Install Brainiall TTS in VS Code](https://img.shields.io/badge/VS_Code-Install_Brainiall_TTS-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=brainiall-tts&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.brainiall.com%2Fmcp%2Ftts%2Fmcp%22%7D)
+
+The button installs the remote server in discovery mode, so VS Code can list its tools without a secret. Synthesis still fails closed until you add your Brainiall API key. For a secure workspace configuration that prompts once and stores the key in VS Code's secret storage, copy [`.vscode/mcp.json`](.vscode/mcp.json) into your project or clone this repository, then start `brainiallTts` from **MCP: List Servers**.
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "brainiall-api-key",
+      "description": "Brainiall API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "brainiallTts": {
+      "type": "http",
+      "url": "https://api.brainiall.com/mcp/tts/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:brainiall-api-key}"
+      }
+    }
+  }
+}
+```
+
+After the server starts, try:
+
+> Use Brainiall TTS to list the Brazilian Portuguese voices, then read “Olá do VS Code” with `pf_dora`.
+
+The install URL format and secret-input configuration follow the [official VS Code MCP guide](https://code.visualstudio.com/api/extension-guides/ai/mcp) and [configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
+
 ### Remote server (recommended — nothing to install)
 
 **Claude Code**
@@ -98,6 +132,8 @@ Ask your agent:
 The agent calls `synthesize_speech(text=..., language="pt", voice="pf_dora")` and receives playable WAV audio.
 
 For copy-ready prompts and smoke tests for narration, accessibility, language practice, and agent alerts, see [Agent workflow recipes](examples/agent-workflows.md).
+
+For REST client testing and automation, import the [Postman collection](postman/Brainiall-TTS-API.postman_collection.json). It contains health, voice-list and two-character synthesis smoke tests and keeps the API key in a collection variable rather than the request URL.
 
 ## Authentication & billing
 

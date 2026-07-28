@@ -293,7 +293,10 @@ async def check_tts_service():
     """
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{TTS_API_URL}/v1/tts/health")
+            # The public TTS health route is owned by this MCP service. The
+            # REST synthesis namespace intentionally does not expose a
+            # /v1/tts/health endpoint.
+            response = await client.get(f"{TTS_API_URL}/mcp/tts/health")
             response.raise_for_status()
             return response.json()
     except httpx.HTTPStatusError as exc:

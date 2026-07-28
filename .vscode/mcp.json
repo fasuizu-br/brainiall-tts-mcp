@@ -1,0 +1,19 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "brainiall-api-key",
+      "description": "Brainiall API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "brainiallTts": {
+      "type": "http",
+      "url": "https://api.brainiall.com/mcp/tts/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:brainiall-api-key}"
+      }
+    }
+  }
+}
