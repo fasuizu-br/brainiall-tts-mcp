@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "brainiall-tts": {
+        "type": "remote",
+        "url": "https://api.brainiall.com/mcp/tts/mcp",
+        "oauth": false,
+        "headers": {
+          "Authorization": "Bearer {env:BRAINIALL_API_KEY}"
+        }
+      }
+    }
+  }
+}

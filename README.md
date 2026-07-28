@@ -102,6 +102,14 @@ claude mcp add --transport http brainiall-tts https://api.brainiall.com/mcp/tts/
 }
 ```
 
+**LM Studio**
+
+Use the official one-click deeplink and the explicit local-model privacy boundary in the [LM Studio setup guide](examples/lm-studio/README.md).
+
+**OpenCode v2**
+
+Use the remote-server schema and environment-backed Bearer header in the [OpenCode v2 setup guide](examples/opencode/README.md).
+
 ### Run locally (stdio-free, still calls the hosted API)
 
 The server itself is a thin wrapper — you can self-host it and it will proxy to `api.brainiall.com` with your key:
