@@ -1,0 +1,17 @@
+name: Brainiall TTS MCP
+version: 1.0.0
+schema: v1
+
+metadata:
+  description: Hosted text-to-speech with Brazilian Portuguese and eight other languages
+  author: BRAINIALL Team
+  license: MIT
+  sourceCodeUrl: https://github.com/fasuizu-br/brainiall-tts-mcp
+
+mcpServers:
+  - name: Brainiall TTS
+    type: streamable-http
+    url: https://api.brainiall.com/mcp/tts/mcp
+    requestOptions:
+      headers:
+        Authorization: Bearer ${{ secrets.BRAINIALL_API_KEY }}
