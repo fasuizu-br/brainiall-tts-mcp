@@ -1,0 +1,199 @@
+openapi: 3.1.0
+info:
+  title: Brainiall Text-to-Speech API
+  version: 1.0.0
+  description: >-
+    Hosted neural text-to-speech with 54 voices across nine languages,
+    including native Brazilian Portuguese voices. Requests are metered per
+    character and successful synthesis returns a WAV audio file.
+  termsOfService: https://brainiall.com/terms
+  contact:
+    name: BRAINIALL Support
+    url: https://brainiall.com
+    email: support@brainiall.com
+  license:
+    name: API Terms of Service
+    url: https://brainiall.com/terms
+externalDocs:
+  description: Brainiall TTS MCP server, examples, and client setup
+  url: https://github.com/fasuizu-br/brainiall-tts-mcp
+servers:
+  - url: https://api.brainiall.com
+    description: Production
+tags:
+  - name: Speech
+    description: Generate speech audio from text.
+  - name: Voices
+    description: Discover available neural voices.
+paths:
+  /v1/tts/voices:
+    get:
+      operationId: listTtsVoices
+      summary: List available voices
+      description: Returns the neural voice catalog available for synthesis.
+      tags:
+        - Voices
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Voice catalog returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceCatalog"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/tts/synthesize:
+    post:
+      operationId: synthesizeSpeech
+      summary: Synthesize speech
+      description: >-
+        Converts 1 to 5,000 characters of text into 16-bit PCM, 24 kHz mono
+        WAV audio. Usage is metered against the authenticated Brainiall API
+        key at USD 0.008 per 1,000 characters.
+      tags:
+        - Speech
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SynthesisRequest"
+            examples:
+              portuguese:
+                summary: Brazilian Portuguese
+                value:
+                  text: Olá, este áudio foi criado pela Brainiall.
+                  voice: pf_dora
+                  speed: 1
+      responses:
+        "200":
+          description: WAV audio generated successfully.
+          headers:
+            Content-Disposition:
+              description: Suggested filename for the generated audio.
+              schema:
+                type: string
+          content:
+            audio/wav:
+              schema:
+                type: string
+                contentEncoding: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: The account does not have enough credits for this request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Brainiall API key
+      description: >-
+        Create an API key with welcome credits at
+        https://app.brainiall.com?utm_source=github&utm_medium=openapi&utm_campaign=tts_api_spec
+  schemas:
+    SynthesisRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: Text to convert to speech.
+        voice:
+          type: string
+          default: pf_dora
+          description: Voice identifier returned by the voices endpoint.
+          examples:
+            - pf_dora
+        speed:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 2
+          default: 1
+          description: Speech-speed multiplier.
+    Voice:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          examples:
+            - pf_dora
+        name:
+          type: string
+        gender:
+          type: string
+        accent:
+          type: string
+        lang:
+          type: string
+          examples:
+            - pt-br
+        grade:
+          type: string
+    VoiceCatalog:
+      type: object
+      required:
+        - voices
+      additionalProperties: true
+      properties:
+        voices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Voice"
+        count:
+          type: integer
+          minimum: 0
+    Error:
+      type: object
+      additionalProperties: true
+      properties:
+        detail:
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+  responses:
+    BadRequest:
+      description: The request payload is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: A valid Brainiall API key was not provided.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RateLimited:
+      description: Too many requests were sent in the current window.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying, when supplied.
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
