@@ -117,6 +117,18 @@ Use the official one-click deeplink and the explicit local-model privacy boundar
 
 Use the remote-server schema and environment-backed Bearer header in the [OpenCode v2 setup guide](examples/opencode/README.md).
 
+**Msty Studio**
+
+Use the [manual Msty Studio field guide](examples/msty/README.md) for a
+Streamable HTTP connection. The reference file is not presented as an
+official integration or import preset.
+
+**Hugging Face Chat UI (self-hosted)**
+
+Use the [administrator `MCP_SERVERS` example](examples/hugging-face-chat-ui/README.md)
+and a tool-capable model. The guide documents the shared-key boundary for base
+servers.
+
 ### Run locally (stdio-free, still calls the hosted API)
 
 The server itself is a thin wrapper — you can self-host it and it will proxy to `api.brainiall.com` with your key:
