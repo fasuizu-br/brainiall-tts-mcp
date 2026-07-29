@@ -150,10 +150,11 @@ where
     if !(100..=300_000).contains(&args.timeout_ms) {
         return Err("--timeout-ms must be between 100 and 300000".to_string());
     }
-    if !args.endpoint.starts_with("https://") && !args.endpoint.starts_with("http://127.0.0.1") {
-        return Err(
-            "--endpoint must use HTTPS or loopback HTTP for an offline fixture".to_string(),
-        );
+    if args.endpoint.contains(['\n', '\r'])
+        || (!args.endpoint.starts_with("https://api.brainiall.com/")
+            && !args.endpoint.starts_with("http://127.0.0.1"))
+    {
+        return Err("--endpoint must be api.brainiall.com over HTTPS or loopback HTTP for an offline fixture".to_string());
     }
 
     Ok(args)
@@ -216,9 +217,14 @@ fn run_once(args: &Args, api_key: &str, ordinal: u32) -> Result<RunResult, Strin
         .map_err(|error| cleanup_error(&work_dir, format!("cannot start curl: {error}")))?;
 
     if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(config.as_bytes())
-            .map_err(|error| cleanup_error(&work_dir, format!("cannot configure curl: {error}")))?;
+        if let Err(error) = stdin.write_all(config.as_bytes()) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(cleanup_error(
+                &work_dir,
+                format!("cannot configure curl: {error}"),
+            ));
+        }
     }
 
     let timeout = Duration::from_millis(args.timeout_ms);
@@ -430,8 +436,8 @@ fn curl_config_escape(value: &str) -> String {
 
 fn sanitize_error(value: &str) -> String {
     let trimmed = value.trim().replace(['\n', '\r'], " ");
-    if trimmed.len() > 240 {
-        format!("{}…", &trimmed[..240])
+    if trimmed.chars().count() > 240 {
+        format!("{}…", trimmed.chars().take(240).collect::<String>())
     } else if trimmed.is_empty() {
         "no diagnostic body".to_string()
     } else {
@@ -454,18 +460,18 @@ fn print_result_json(args: &Args, binary_bytes: u64, results: &[RunResult]) {
     println!("  \"repeat\": {},", args.repeat);
     println!("  \"hardTimeoutMs\": {},", args.timeout_ms);
     println!("  \"localModelDownloadBytes\": 0,");
-    println!("  \"releaseBinaryBytes\": {binary_bytes},");
+    println!("  \"executableBytes\": {binary_bytes},");
     println!("  \"secretInProcessArguments\": false,");
     println!("  \"runs\": [");
     for (index, result) in results.iter().enumerate() {
         println!("    {{");
         println!("      \"ordinal\": {},", result.ordinal);
         println!(
-            "      \"temperature\": \"{}\",",
+            "      \"sequence\": \"{}\",",
             if index == 0 {
-                "cold-observation"
+                "first-process-observation"
             } else {
-                "warm-observation"
+                "repeat-process-observation"
             }
         );
         println!("      \"httpStatus\": {},", result.http_status);
@@ -495,7 +501,7 @@ fn print_result_json(args: &Args, binary_bytes: u64, results: &[RunResult]) {
     }
     println!("  ],");
     println!("  \"observedClaimsOnly\": true,");
-    println!("  \"notProven\": [\"streaming\", \"chunk-level backpressure\", \"production p95\", \"all voices\", \"third-party integration\", \"buyer adoption\", \"reconciled revenue\"]");
+    println!("  \"notProven\": [\"backend cold/warm latency\", \"streaming\", \"chunk-level backpressure\", \"production p95\", \"all voices\", \"third-party integration\", \"buyer adoption\", \"reconciled revenue\"]");
     println!("}}");
 }
 

@@ -25,11 +25,12 @@ cargo run --release -- \
   --text 'Esta frase curta verifica a saída de áudio em português.'
 ```
 
-The command prints one JSON object. A successful two-run result includes cold
-and warm HTTP/latency observations, WAV sample format, byte count, approximate
-characters per second, binary size, and the local model-download size (`0`,
-because the candidate is hosted). It does not print the API key or response
-audio.
+The command prints one JSON object. A successful two-run result includes first
+and repeat child-process HTTP/latency observations, WAV sample format, byte
+count, approximate characters per second, executable size, and the local
+model-download size (`0`, because the candidate is hosted). These are not
+backend cold-start/warm-start measurements. It does not print the API key or
+response audio.
 
 Use `--keep-audio --output-dir results` only with non-sensitive text. The
 default removes audio and request files after validation.
@@ -49,9 +50,10 @@ network access or a key.
 
 This slice proves only a buffered HTTPS request, deterministic child-process
 lifecycle, hard cancellation, and 16-bit PCM WAV validation for the observed
-run. It does **not** prove streaming audio, chunk-level backpressure, Rust
-library integration, all voices/languages, production p95 latency, provider
-idempotency, offline operation, or suitability for a third-party application.
+run. It does **not** prove backend cold/warm latency, streaming audio,
+chunk-level backpressure, Rust library integration, all voices/languages,
+production p95 latency, provider idempotency, offline operation, or suitability
+for a third-party application.
 
 Hosted synthesis sends the supplied text to Brainiall and is metered against
 the caller's account. Do not submit confidential, personal, medical, or
