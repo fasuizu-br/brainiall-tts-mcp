@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "brainiall-tts": {
+      "type": "http",
+      "url": "https://api.brainiall.com/mcp/tts/mcp",
+      "headers": {
+        "Authorization": "Bearer ${COPILOT_MCP_BRAINIALL_API_KEY}"
+      },
+      "tools": [
+        "list_voices",
+        "check_tts_service",
+        "synthesize_speech"
+      ]
+    }
+  }
+}

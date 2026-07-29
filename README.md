@@ -51,6 +51,10 @@ After the server starts, try:
 
 The install URL format and secret-input configuration follow the [official VS Code MCP guide](https://code.visualstudio.com/api/extension-guides/ai/mcp) and [configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
+### GitHub Copilot cloud agent
+
+Use the [restricted remote-server configuration](examples/github-copilot-cloud/README.md) for Copilot cloud agent or Copilot code review. It allowlists the three Brainiall tools and resolves the Bearer token from the repository's `COPILOT_MCP_BRAINIALL_API_KEY` Agents secret; no API key is committed.
+
 ### Continue (VS Code / JetBrains)
 
 Copy the ready-to-use [Continue MCP block](examples/continue/brainiall-tts.yaml)
@@ -66,10 +70,7 @@ See the [Continue setup and smoke test](examples/continue/README.md).
 
 **Claude Code**
 
-```bash
-claude mcp add --transport http brainiall-tts https://api.brainiall.com/mcp/tts/mcp \
-  --header "Authorization: Bearer YOUR_BRAINIALL_API_KEY"
-```
+Use the [environment-backed Claude Code configuration](examples/claude-code/README.md). It keeps the key out of `.mcp.json`, scopes the server to the current project, and documents the external-data and metered-usage boundary.
 
 **Claude Desktop / any client with `.mcp.json`-style config**
 
