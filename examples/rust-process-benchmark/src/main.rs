@@ -8,6 +8,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const DEFAULT_ENDPOINT: &str = "https://api.brainiall.com/v1/tts/synthesize";
 const DEFAULT_TEXT: &str = "Esta frase sintética verifica a saída de áudio em português.";
+const MAX_RESPONSE_BYTES: u64 = 50 * 1024 * 1024;
+const MAX_ENDPOINT_BYTES: usize = 2_048;
+const MAX_API_KEY_BYTES: usize = 4_096;
 
 #[derive(Debug)]
 struct Args {
@@ -58,8 +61,11 @@ fn run() -> Result<(), String> {
     let api_key = env::var("BRAINIALL_API_KEY").map_err(|_| {
         "BRAINIALL_API_KEY is required and must stay outside source control".to_string()
     })?;
-    if api_key.trim().is_empty() || api_key.contains(['\n', '\r']) {
-        return Err("BRAINIALL_API_KEY is empty or contains a newline".to_string());
+    if api_key.trim().is_empty()
+        || api_key.contains(['\n', '\r'])
+        || api_key.len() > MAX_API_KEY_BYTES
+    {
+        return Err("BRAINIALL_API_KEY is empty, multiline, or too long".to_string());
     }
 
     fs::create_dir_all(&args.output_dir)
@@ -150,14 +156,38 @@ where
     if !(100..=300_000).contains(&args.timeout_ms) {
         return Err("--timeout-ms must be between 100 and 300000".to_string());
     }
-    if args.endpoint.contains(['\n', '\r'])
-        || (!args.endpoint.starts_with("https://api.brainiall.com/")
-            && !args.endpoint.starts_with("http://127.0.0.1"))
-    {
+    if !endpoint_is_allowed(&args.endpoint) {
         return Err("--endpoint must be api.brainiall.com over HTTPS or loopback HTTP for an offline fixture".to_string());
     }
 
     Ok(args)
+}
+
+fn endpoint_is_allowed(endpoint: &str) -> bool {
+    if endpoint.len() > MAX_ENDPOINT_BYTES || endpoint.contains(['\n', '\r']) {
+        return false;
+    }
+
+    if let Some(path) = endpoint.strip_prefix("https://api.brainiall.com") {
+        return path.starts_with('/');
+    }
+
+    let Some(authority_and_path) = endpoint.strip_prefix("http://127.0.0.1") else {
+        return false;
+    };
+    if authority_and_path.starts_with('/') {
+        return true;
+    }
+
+    let Some(port_and_path) = authority_and_path.strip_prefix(':') else {
+        return false;
+    };
+    let Some((port, _path)) = port_and_path.split_once('/') else {
+        return false;
+    };
+    !port.is_empty()
+        && port.bytes().all(|byte| byte.is_ascii_digit())
+        && port.parse::<u16>().is_ok_and(|value| value > 0)
 }
 
 fn next_value<I>(values: &mut I, flag: &str) -> Result<String, String>
@@ -189,7 +219,8 @@ fn run_once(args: &Args, api_key: &str, ordinal: u32) -> Result<RunResult, Strin
         json_escape(&args.voice),
         args.speed
     );
-    write_private_file(&body_path, body.as_bytes())?;
+    write_private_file(&body_path, body.as_bytes())
+        .map_err(|error| cleanup_error(&work_dir, error))?;
 
     let config = format!(
         "url = \"{}\"\nrequest = \"POST\"\nheader = \"Authorization: Bearer {}\"\nheader = \"Content-Type: application/json\"\n",
@@ -199,9 +230,12 @@ fn run_once(args: &Args, api_key: &str, ordinal: u32) -> Result<RunResult, Strin
 
     let started = Instant::now();
     let mut child = Command::new("curl")
+        .arg("-q")
         .arg("--silent")
         .arg("--show-error")
         .arg("--fail-with-body")
+        .arg("--max-filesize")
+        .arg(MAX_RESPONSE_BYTES.to_string())
         .arg("--config")
         .arg("-")
         .arg("--data-binary")
@@ -213,6 +247,7 @@ fn run_once(args: &Args, api_key: &str, ordinal: u32) -> Result<RunResult, Strin
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        .env_remove("BRAINIALL_API_KEY")
         .spawn()
         .map_err(|error| cleanup_error(&work_dir, format!("cannot start curl: {error}")))?;
 
@@ -269,7 +304,7 @@ fn run_once(args: &Args, api_key: &str, ordinal: u32) -> Result<RunResult, Strin
         return Err(format!(
             "run {ordinal} failed at the HTTPS boundary (curl exit {:?}): {}",
             status.code(),
-            sanitize_error(&stderr)
+            sanitize_error(&stderr, api_key)
         ));
     }
 
@@ -298,8 +333,8 @@ fn run_once(args: &Args, api_key: &str, ordinal: u32) -> Result<RunResult, Strin
     let wav = parse_wav_file(&wav_path).map_err(|message| cleanup_error(&work_dir, message))?;
     let final_path = if args.keep_audio {
         let destination = args.output_dir.join(format!("run-{ordinal}.wav"));
-        fs::rename(&wav_path, &destination)
-            .map_err(|error| cleanup_error(&work_dir, format!("cannot retain audio: {error}")))?;
+        persist_private_file_exclusive(&wav_path, &destination)
+            .map_err(|error| cleanup_error(&work_dir, error))?;
         Some(destination)
     } else {
         None
@@ -340,6 +375,30 @@ fn write_private_file(path: &Path, contents: &[u8]) -> Result<(), String> {
         .map_err(|error| format!("cannot write private request file: {error}"))
 }
 
+fn persist_private_file_exclusive(source: &Path, destination: &Path) -> Result<(), String> {
+    let mut source_file = File::open(source)
+        .map_err(|error| format!("cannot open validated audio for retention: {error}"))?;
+    let mut options = OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut destination_file = options
+        .open(destination)
+        .map_err(|error| format!("cannot retain audio without overwriting a file: {error}"))?;
+    if let Err(error) = std::io::copy(&mut source_file, &mut destination_file) {
+        drop(destination_file);
+        let _ = fs::remove_file(destination);
+        return Err(format!("cannot retain validated audio: {error}"));
+    }
+    destination_file
+        .sync_all()
+        .map_err(|error| format!("cannot sync retained audio: {error}"))?;
+    Ok(())
+}
+
 fn restrict_permissions(path: &Path, directory: bool) -> Result<(), String> {
     #[cfg(unix)]
     {
@@ -352,6 +411,15 @@ fn restrict_permissions(path: &Path, directory: bool) -> Result<(), String> {
 }
 
 fn parse_wav_file(path: &Path) -> Result<WavInfo, String> {
+    let size = fs::metadata(path)
+        .map_err(|error| format!("cannot inspect WAV output: {error}"))?
+        .len();
+    if size > MAX_RESPONSE_BYTES {
+        return Err(format!(
+            "WAV output exceeds the {} byte safety limit",
+            MAX_RESPONSE_BYTES
+        ));
+    }
     let mut bytes = Vec::new();
     File::open(path)
         .and_then(|mut file| file.read_to_end(&mut bytes))
@@ -362,6 +430,10 @@ fn parse_wav_file(path: &Path) -> Result<WavInfo, String> {
 fn parse_wav(bytes: &[u8]) -> Result<WavInfo, String> {
     if bytes.len() < 12 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
         return Err("response is not a RIFF/WAVE file".to_string());
+    }
+    let declared_riff_bytes = u32::from_le_bytes(bytes[4..8].try_into().unwrap()) as usize + 8;
+    if declared_riff_bytes != bytes.len() {
+        return Err("RIFF length does not match the file length".to_string());
     }
 
     let mut offset = 12usize;
@@ -385,24 +457,40 @@ fn parse_wav(bytes: &[u8]) -> Result<WavInfo, String> {
                 u16::from_le_bytes(bytes[start..start + 2].try_into().unwrap()),
                 u16::from_le_bytes(bytes[start + 2..start + 4].try_into().unwrap()),
                 u32::from_le_bytes(bytes[start + 4..start + 8].try_into().unwrap()),
+                u32::from_le_bytes(bytes[start + 8..start + 12].try_into().unwrap()),
+                u16::from_le_bytes(bytes[start + 12..start + 14].try_into().unwrap()),
                 u16::from_le_bytes(bytes[start + 14..start + 16].try_into().unwrap()),
             ));
         } else if id == b"data" {
             data_bytes = Some(size as u32);
         }
-        offset = end + (size % 2);
+        offset = end
+            .checked_add(size % 2)
+            .ok_or_else(|| "WAV padding length overflow".to_string())?;
+        if offset > bytes.len() {
+            return Err("WAV chunk padding exceeds file length".to_string());
+        }
+    }
+    if offset != bytes.len() {
+        return Err("WAV file ends with an incomplete chunk".to_string());
     }
 
-    let (audio_format, channels, sample_rate_hz, bits_per_sample) =
+    let (audio_format, channels, sample_rate_hz, byte_rate, block_align, bits_per_sample) =
         format.ok_or_else(|| "WAV fmt chunk is missing".to_string())?;
     let data_bytes = data_bytes.ok_or_else(|| "WAV data chunk is missing".to_string())?;
-    if audio_format != 1 || channels != 1 || sample_rate_hz != 24_000 || bits_per_sample != 16 {
+    if audio_format != 1
+        || channels != 1
+        || sample_rate_hz != 24_000
+        || byte_rate != 48_000
+        || block_align != 2
+        || bits_per_sample != 16
+    {
         return Err(format!(
-            "unexpected WAV format: format={audio_format}, channels={channels}, sample_rate={sample_rate_hz}, bits={bits_per_sample}"
+            "unexpected WAV format: format={audio_format}, channels={channels}, sample_rate={sample_rate_hz}, byte_rate={byte_rate}, block_align={block_align}, bits={bits_per_sample}"
         ));
     }
-    if data_bytes == 0 {
-        return Err("WAV data chunk is empty".to_string());
+    if data_bytes == 0 || data_bytes % u32::from(block_align) != 0 {
+        return Err("WAV data chunk is empty or not frame-aligned".to_string());
     }
 
     Ok(WavInfo {
@@ -434,8 +522,9 @@ fn curl_config_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-fn sanitize_error(value: &str) -> String {
-    let trimmed = value.trim().replace(['\n', '\r'], " ");
+fn sanitize_error(value: &str, secret: &str) -> String {
+    let redacted = value.replace(secret, "[REDACTED]");
+    let trimmed = redacted.trim().replace(['\n', '\r'], " ");
     if trimmed.chars().count() > 240 {
         format!("{}…", trimmed.chars().take(240).collect::<String>())
     } else if trimmed.is_empty() {
@@ -507,7 +596,7 @@ fn print_result_json(args: &Args, binary_bytes: u64, results: &[RunResult]) {
 
 #[cfg(test)]
 mod tests {
-    use super::{json_escape, parse_wav};
+    use super::{endpoint_is_allowed, json_escape, parse_wav, sanitize_error};
 
     fn pcm_wav(data: &[u8]) -> Vec<u8> {
         let mut wav = Vec::new();
@@ -551,5 +640,40 @@ mod tests {
         let mut wav = pcm_wav(&[0, 0]);
         wav[24..28].copy_from_slice(&16_000u32.to_le_bytes());
         assert!(parse_wav(&wav).is_err());
+    }
+
+    #[test]
+    fn rejects_mismatched_riff_length_and_odd_pcm_frames() {
+        let mut wrong_length = pcm_wav(&[0, 0]);
+        wrong_length.extend_from_slice(&[0, 0]);
+        assert!(parse_wav(&wrong_length).is_err());
+
+        let odd_frame = pcm_wav(&[0]);
+        assert!(parse_wav(&odd_frame).is_err());
+    }
+
+    #[test]
+    fn accepts_only_structural_production_or_loopback_endpoints() {
+        assert!(endpoint_is_allowed(
+            "https://api.brainiall.com/v1/tts/synthesize"
+        ));
+        assert!(endpoint_is_allowed("http://127.0.0.1/fixture"));
+        assert!(endpoint_is_allowed("http://127.0.0.1:8080/fixture"));
+        assert!(!endpoint_is_allowed(
+            "http://127.0.0.1@attacker.example/fixture"
+        ));
+        assert!(!endpoint_is_allowed(
+            "http://127.0.0.1.evil.example/fixture"
+        ));
+        assert!(!endpoint_is_allowed(
+            "https://api.brainiall.com.evil.example/fixture"
+        ));
+        assert!(!endpoint_is_allowed("http://127.0.0.1:80@evil/fixture"));
+    }
+
+    #[test]
+    fn redacts_the_exact_secret_before_returning_curl_errors() {
+        let sanitized = sanitize_error("trace: Bearer owner-secret-token", "owner-secret-token");
+        assert_eq!(sanitized, "trace: Bearer [REDACTED]");
     }
 }

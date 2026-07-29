@@ -6,10 +6,12 @@ process-boundary experiment, not a proposed generic speech engine.
 
 The binary owns the request lifecycle and starts `curl` as a disposable child
 process. The API key is sent to `curl` over stdin, never as a command-line
-argument. The parent applies a hard timeout, kills and reaps the child on
-timeout, validates RIFF/WAVE metadata, records time to first byte and total
-latency, then removes temporary request and audio files unless `--keep-audio`
-is set.
+argument or inherited child environment. Automatic `.curlrc` loading is
+disabled. The parent bounds endpoint/key input and response size, applies a
+hard process timeout, kills and reaps the child on timeout, validates RIFF/WAVE
+metadata, records time to first byte and total latency, then removes temporary
+request and audio files unless `--keep-audio` is set. Retained outputs are
+created exclusively and never overwrite an existing file.
 
 ## Run
 
@@ -44,7 +46,8 @@ cargo build --release
 ```
 
 Unit tests cover JSON escaping and positive/negative WAV parsing without
-network access or a key.
+network access or a key. They also reject lookalike loopback/production hosts
+and verify secret redaction from returned curl diagnostics.
 
 ## Evidence boundary
 
