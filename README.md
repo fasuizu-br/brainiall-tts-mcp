@@ -68,6 +68,12 @@ See the [Continue setup and smoke test](examples/continue/README.md).
 
 ### Remote server (recommended — nothing to install)
 
+**Codex CLI / IDE / ChatGPT desktop app**
+
+Use the [project-scoped Codex configuration](examples/codex/README.md). It reads
+`BRAINIALL_API_KEY` from the environment, allowlists the three Brainiall tools,
+and prompts before every call.
+
 **Claude Code**
 
 Use the [environment-backed Claude Code configuration](examples/claude-code/README.md). It keeps the key out of `.mcp.json`, scopes the server to the current project, and documents the external-data and metered-usage boundary.

@@ -1,0 +1,6 @@
+[mcp_servers.brainiall_tts]
+url = "https://api.brainiall.com/mcp/tts/mcp"
+bearer_token_env_var = "BRAINIALL_API_KEY"
+enabled_tools = ["check_tts_service", "list_voices", "synthesize_speech"]
+default_tools_approval_mode = "prompt"
+enabled = true
