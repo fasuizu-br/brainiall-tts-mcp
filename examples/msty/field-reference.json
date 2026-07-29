@@ -1,0 +1,12 @@
+{
+  "_format": "manual-field-reference-only",
+  "name": "Brainiall TTS",
+  "connectionType": "HTTP",
+  "mcpServerUrl": "https://api.brainiall.com/mcp/tts/mcp",
+  "headers": [
+    {
+      "name": "Authorization",
+      "value": "Bearer <YOUR_BRAINIALL_API_KEY>"
+    }
+  ]
+}

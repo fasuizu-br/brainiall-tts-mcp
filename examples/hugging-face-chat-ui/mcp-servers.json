@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Brainiall TTS",
+    "url": "https://api.brainiall.com/mcp/tts/mcp",
+    "headers": {
+      "Authorization": "Bearer <YOUR_BRAINIALL_API_KEY>"
+    }
+  }
+]
