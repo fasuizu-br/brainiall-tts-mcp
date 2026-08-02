@@ -66,6 +66,10 @@ The block uses Continue's supported `streamable-http` transport and resolves
 the key through `${{ secrets.BRAINIALL_API_KEY }}`; no credential is committed.
 See the [Continue setup and smoke test](examples/continue/README.md).
 
+### Dify builders
+
+For a Dify speech workflow, use the open-source [BRAINIALL Speech provider](https://github.com/fasuizu-br/brainiall-dify-provider) and keep the API key in Dify's credential store. The [bounded Dify intent route](https://www.brainiall.com/transcreve/integracoes/dify-transcreve-ptbr-pipeline) explains the caller-owned boundary; it is not a Dify partnership or a guarantee of production behavior.
+
 ### Remote server (recommended — nothing to install)
 
 **Codex CLI / IDE / ChatGPT desktop app**
