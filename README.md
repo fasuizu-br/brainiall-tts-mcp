@@ -133,6 +133,15 @@ Use the [administrator `MCP_SERVERS` example](examples/hugging-face-chat-ui/READ
 and a tool-capable model. The guide documents the shared-key boundary for base
 servers.
 
+### Clients that require `/v1/audio/speech`
+
+Use the zero-dependency [partial OpenAI-shaped TTS adapter](examples/openai-compatible-tts-adapter/README.md)
+when a client can configure an OpenAI-style speech route but cannot call
+Brainiall's native endpoint. The adapter returns WAV only, declares the sample
+rate observed in the WAV header, never retries a metered request, and documents
+the exact compatibility limits. It is a local reference adapter, not a claim
+that the hosted Brainiall API is natively OpenAI-compatible.
+
 ### Run locally (stdio-free, still calls the hosted API)
 
 The server itself is a thin wrapper — you can self-host it and it will proxy to `api.brainiall.com` with your key:
