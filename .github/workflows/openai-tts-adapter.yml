@@ -1,0 +1,32 @@
+name: OpenAI-shaped TTS adapter
+
+on:
+  pull_request:
+    paths:
+      - "examples/openai-compatible-tts-adapter/**"
+      - ".github/workflows/openai-tts-adapter.yml"
+  push:
+    branches: [main]
+    paths:
+      - "examples/openai-compatible-tts-adapter/**"
+      - ".github/workflows/openai-tts-adapter.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Validate adapter contract without a key or network call
+        run: >-
+          python -m unittest discover
+          -s examples/openai-compatible-tts-adapter
+          -p 'test_*.py'
